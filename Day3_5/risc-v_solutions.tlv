@@ -98,6 +98,10 @@
          
          $result[31:0] = $is_addi ? $src1_value + $imm : $is_add ? $src1_value + $src2_value : 32'bx ;
          
+         $rf_wr_en = ($rd == 0) ? 0 : $rd_valid;
+         $rf_wr_index[4:0] = $rd;
+         $rf_wr_data[31:0] = $result;
+         
 
 
 
