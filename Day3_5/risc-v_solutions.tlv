@@ -100,8 +100,9 @@
          $rf_rd_en1 = $rs1_valid;
          $rf_rd_en2 = $rs2_valid;
          
-         $src1_value[31:0] = $rf_rd_data1[31:0];
-         $src2_value[31:0] = $rf_rd_data2[31:0];
+         
+         $src1_value[31:0] = (($rs1 == >>1$rd) && >>1$rf_wr_en) ? >>1$result[31:0] : $rf_rd_data1[31:0];
+         $src2_value[31:0] = (($rs2 == >>1$rd) && >>1$rf_wr_en) ? >>1$result : $rf_rd_data2[31:0];
          
          $br_trgt_pc[31:0] = $pc + $imm;
          
@@ -120,7 +121,6 @@
                             $is_bgeu ? ($src1_value >= $src2_value) : 1'b0;
          
          $valid_taken_br = $valid && $taken_br;
-      
 
 
 
