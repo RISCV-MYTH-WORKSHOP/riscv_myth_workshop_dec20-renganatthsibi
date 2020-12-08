@@ -40,7 +40,7 @@
    |cpu
       @0
          $reset = *reset;
-         $pc[31:0] = >>1$reset ? 0 : >>1$pc + 32'h4;
+         $pc[31:0] = >>1$reset ? 0 : >>1$taken_br ? >>1$br_trgt_pc : >>1$pc + 32'h4;
       @1
          $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:2];
          $imem_rd_en = !$reset;
@@ -102,6 +102,20 @@
          $rf_wr_index[4:0] = $rd;
          $rf_wr_data[31:0] = $result;
          
+         
+         $taken_br = $is_beq ? $src1_value == $src2_value : $is_bne ? $src1_value != $src2_value :
+                                $is_blt ? ($src1_value < $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
+                                $is_bge ? ($src1_value >= $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
+                                $is_bltu ? ($src1_value < $src2_value) :
+                            $is_bgeu ? ($src1_value >= $src2_value) : 1'b0;
+         
+         
+         $br_trgt_pc[31:0] = $pc + $imm;
+         
+         *passed = |cpu/xreg[10]>>5$value == (1+2+3+4+5+6+7+8+9)  ;
+         *failed = 1'b0;
+         
+
 
 
 
@@ -114,8 +128,7 @@
 
    
    // Assert these to end simulation (before Makerchip cycle limit).
-   *passed = *cyc_cnt > 40;
-   *failed = 1'b0;
+   
    
    // Macro instantiations for:
    //  o instruction memory
