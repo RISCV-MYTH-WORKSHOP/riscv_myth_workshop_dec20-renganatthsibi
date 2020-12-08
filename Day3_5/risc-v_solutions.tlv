@@ -40,10 +40,9 @@
    |cpu
       @0
          $reset = *reset;
-         $start = $reset ? 0 : >>1$reset ? 1 : 0;
-         $pc[31:0] = >>1$reset ? 0 : >>3$valid_taken_br ? >>3$br_trgt_pc : >>3$inc_pc;
+         $pc[31:0] = >>1$reset ? 0 : >>3$valid_taken_br ? >>3$br_trgt_pc : >>1$inc_pc;
          
-         $valid = $reset ? 0 : $start ? 1 : >>3$valid;
+         //$valid = $reset ? 0 : $start ? 1 : >>3$valid;
       @1
          $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:2];
          $imem_rd_en = !$reset;
@@ -109,16 +108,18 @@
       @3   
          $result[31:0] = $is_addi ? $src1_value + $imm : $is_add ? $src1_value + $src2_value : 32'bx ;
          
-         $rf_wr_en = ($rd == 0) ? 0 : $valid & $rd_valid;
-         $rf_wr_index[4:0] = $rd;
-         $rf_wr_data[31:0] = $result;
-         
-         
          $taken_br = $is_beq ? $src1_value == $src2_value : $is_bne ? $src1_value != $src2_value :
                                 $is_blt ? ($src1_value < $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
                                 $is_bge ? ($src1_value >= $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
                                 $is_bltu ? ($src1_value < $src2_value) :
                             $is_bgeu ? ($src1_value >= $src2_value) : 1'b0;
+         
+         $valid = !(>>1$valid_taken_br | >>2$valid_taken_br);
+         
+         $rf_wr_en = ($rd == 0) ? 0 : $valid & $rd_valid;
+         $rf_wr_index[4:0] = $rd;
+         $rf_wr_data[31:0] = $result;
+         
          
          $valid_taken_br = $valid && $taken_br;
 
@@ -133,7 +134,7 @@
 
    
    // Assert these to end simulation (before Makerchip cycle limit).
-   //*passed = *cyc_cnt > 40;
+   *passed = *cyc_cnt > 40;
    *failed = 1'b0;
    
    // Macro instantiations for:
