@@ -25,15 +25,16 @@
    m4_asm(ADD, r10, r0, r0)             // Initialize r10 (a0) to 0.
    // Function:
    m4_asm(ADD, r14, r10, r0)            // Initialize sum register a4 with 0x0
-   m4_asm(ADDI, r12, r10, 1010)         // Store count of 10 in register a2.
+   m4_asm(ADDI, r12, r10, 1100)         // Store count of 10 in register a2.
    m4_asm(ADD, r13, r10, r0)            // Initialize intermediate sum register a3 with 0
    // Loop:
    m4_asm(ADD, r14, r13, r14)           // Incremental addition
    m4_asm(ADDI, r13, r13, 1)            // Increment intermediate register by 1
    m4_asm(BLT, r13, r12, 1111111111000) // If a3 is less than a2, branch to label named <loop>
    m4_asm(ADD, r10, r14, r0)            // Store final result to register a0 so that it can be read by main program
-   m4_asm(SW,r0,r10,100) //Stores the data present in x10 to the location r0+100 = 0x100
+   m4_asm(SH,r0,r10,100) //Stores the data present in x10 to the location r0+100 = 0x100
    m4_asm(LW,r15,r0,100) //Loads the data from the location 0x100 in data memory to the Register x15
+   
    
    
    // Optional:
@@ -43,7 +44,7 @@
    |cpu
       @0
          $reset = *reset;
-         $pc[31:0] = >>1$reset ? 0 : >>3$valid_taken_br ? >>3$br_trgt_pc : >>3$valid_load_taken ? >>3$inc_pc : >>1$inc_pc;
+         $pc[31:0] = >>1$reset ? 0 : >>3$valid_taken_br | >>3$valid_jump_taken ? >>3$br_trgt_pc[31:0] : >>3$valid_jalr_taken ? >>3$jalr_trgt_pc[31:0] : >>3$valid_load_taken ? >>3$inc_pc : >>1$inc_pc;
          
          //$valid = $reset ? 0 : $start ? 1 : >>3$valid;
       @1
@@ -122,7 +123,7 @@
          $is_sra = $dec_bits == 11'b11010110011;
          $is_lui = $dec_bits == 11'bxxxx0110111;
          
-         *passed = |cpu/xreg[15]>>5$value == (1+2+3+4+5+6+7+8+9)  ;
+         *passed = |cpu/xreg[15]>>5$value == (1+2+3+4+5+6+7+8+9+10+11)  ;
       @2  
          $rf_rd_index1[4:0] = $rs1;
          $rf_rd_index2[4:0] = $rs2;
@@ -140,6 +141,13 @@
          $sltiu_rslt = $src1_value < $imm;
          
          
+         
+         $valid_jump_taken = $is_jal & $valid;
+         
+         $valid_jalr_taken = $is_jalr & $valid;
+         
+         $jalr_trgt_pc[31:0] = $src1_value + $imm;
+         
          $result[31:0] = $is_addi ? $src1_value + $imm : $is_add ? $src1_value + $src2_value : $is_andi ? $src1_value & $imm : $is_ori ? $src1_value | $imm : $is_xori ? $src1_value ^ $imm :
                          $is_slli ? $src1_value << $imm[5:0] : $is_srli ? $src1_value >> $imm[5:0] : $is_and ? $src1_value & $src2_value : $is_or ? $src1_value | $src2_value : $is_xor ? $src1_value ^ $src2_value : $is_sub ? $src1_value - $src2_value : $is_sll ? $src1_value << $src2_value[4:0] :
                          $is_srl ? $src1_value >> $src2_value[4:0] : $is_sltu ? $sltu_rslt : $is_sltiu ? $sltiu_rslt : $is_lui ? {$imm[31:12],12'b0} : $is_auipc ? $pc+$imm : 
@@ -156,7 +164,7 @@
                             
          
          
-         $valid = !(>>1$valid_taken_br | >>2$valid_taken_br | >>1$valid_load_taken | >>2$valid_load_taken);
+         $valid = !(>>1$valid_taken_br | >>2$valid_taken_br | >>1$valid_load_taken | >>2$valid_load_taken | >>2$valid_jump_taken | >>1$valid_jump_taken | >>1$valid_jalr_taken | >>2$valid_jalr_taken);
          
          
          $rf_wr_en = (($rd == 0) ? 0 : ($valid & $rd_valid & (!$is_load))) | >>2$valid_load_taken;
@@ -187,7 +195,7 @@
 
    
    // Assert these to end simulation (before Makerchip cycle limit).
-   //*passed = *cyc_cnt > 40;
+   *passed = *cyc_cnt > 40;
    *failed = 1'b0;
    
    // Macro instantiations for:
